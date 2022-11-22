@@ -141,8 +141,8 @@ impl fmt::Write for Writer {
 }
 
 
-
-pub  fn test_print_something() {
+#[cfg(predicate)]
+fn test_print_something() {
 
     use core::fmt::Write;
     let mut writer = Writer {
@@ -184,4 +184,68 @@ lazy_static! {
             &mut *(0xb8000 as *mut Buffer)
         },
     });
+}
+
+
+#[macro_export]
+macro_rules! print {
+    ($($arg:tt)*) => {
+        $crate::vga_buffer::_print(format_args!($($arg)*))
+    };
+}
+
+
+#[macro_export]
+macro_rules! println {
+    () => {
+       $crate::print!("\n") 
+    };
+    ($($arg:tt)*) => {
+        $crate::print!("{}\n",format_args!($($arg)*))
+    };
+}
+
+
+
+#[doc(hidden)]
+pub fn _print(args: fmt::Arguments) {
+    use core::fmt::Write;
+
+    WRITER.lock().write_fmt(args).unwrap();
+}
+
+
+#[cfg(test)]
+use crate::{serial_print,serial_println};
+
+
+#[test_case]
+fn test_print_simple() {
+    serial_print!("test println...");
+    println!("test_println_simple output");
+    serial_println!("[ok]");
+}
+
+
+#[test_case]
+fn test_println_many() {
+    serial_print!("test println_many...");
+    for _ in 0..300 {
+        println!("test_println_many output");
+    }
+    serial_println!("[ok]");
+}
+
+#[test_case]
+fn test_println_output() {
+    serial_print!("test println_output...");
+
+    let s = "Some test string that fits on a single line";
+    println!("{}",s);
+    for (i,c) in s.chars().enumerate() {
+        let screen_char = WRITER.lock().buffer.chars[BUFFER_HEIGHT -2][i].read();
+        assert_eq!(char::from(screen_char.ascii_character),c);
+    }
+
+    serial_println!("[ok]");
 }
