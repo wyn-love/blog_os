@@ -31,3 +31,7 @@ test-args = [
     "-display", "none" # 不显示 qemu 的图形界面窗口
     ]
 test-success-exit-code = 33
+
+[[test]]
+name = "should_panic" 
+harness = false  # 定义了是否将test runner用于集成测试中
